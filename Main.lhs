@@ -40,10 +40,12 @@ Get arguments, we expect a url only, that is, program is to be called `trac-time
 >      let 
 >        tickets = filter isTicket items
 >        wiki = filter isWikiPage items
+>        chsets = filter isChangesetItem items
 >        unks = filter isUnknownItem items
 >      putStrLn $ "Tickets: "++ (show $ length tickets)
 >      putStrLn $ "Wiki: "++ (show $ length wiki)
->      putStrLn $ "Unknown: "++ (show $ length unks)
+>      putStrLn $ "Changesets: "++ (show $ length chsets)
+>      putStrLn $ "Unknown: "++ (show $ unks)
 >    _ -> putStrLn "?"
 
 > data TicketStatus = ClosedTicket | CreatedTicket  deriving Show
@@ -51,15 +53,19 @@ Get arguments, we expect a url only, that is, program is to be called `trac-time
 
 > data Item = Ticket {
 >  tUser :: String
+>  , tDdate :: Date
 >  , tTitle :: String
->  , tDdate :: String
 >  , tStatus :: TicketStatus
 >  } | WikiPage {
 >  wpUser :: String
->  , wpDate :: String
+>  , wpDate :: Date
 >  , wpTitle :: String
 >  , wpStatus :: WikiPageStatus
->  } | UnknownItem deriving Show
+>  } | Changeset {
+>    chsetUser :: String
+>  , chsetDate :: Date
+>  , chsetTitle :: String
+> } | UnknownItem String deriving Show
 
 > toDO :: a -> a
 > toDO = id
@@ -83,6 +89,7 @@ Parse RSS (XML) to a list of items with the library tagsoup.
 >   items <- partitions (~== "<item>") $ parseTags rss   
 >   (title,rss2) <- items `extractText` "<title>"
 >   (creator,rss3) <- items `extractText` "<dc:creator>"
+>   --(author,rss3) <- items `extractText` "<author>"
 >   (date,rss3) <- items `extractText` "<pubDate>"
 >   (category,rs) <- items `extractText` "<category>"
 >   return $ mkItem title creator date category
@@ -96,10 +103,11 @@ Create an item from attributes
 
 > mkItem :: Title -> Creator -> Date -> Category -> Item
 > mkItem t c d cat = case cat of
->   "newticket" -> Ticket c t d CreatedTicket
->   "closedticket" -> Ticket c t d ClosedTicket
+>   "newticket" -> Ticket c d t CreatedTicket
+>   "closedticket" -> Ticket c d t ClosedTicket
 >   "wiki" -> WikiPage c d t EditedWikiPage
->   _ -> UnknownItem
+>   "changeset" -> Changeset c d t
+>   a -> UnknownItem a
 > 
 
 Given a parsed structure, we would like to substract information from the tags. This function looks for the first ocurrence of a tag and returns the text inside it together with the remaining structure.
@@ -123,5 +131,9 @@ Question: Is it possible to generalize on this?
 > isWikiPage _ = False
 
 > isUnknownItem :: Item -> Bool
-> isUnknownItem UnknownItem = True
+> isUnknownItem (UnknownItem s) = True
 > isUnknownItem _ = False
+
+> isChangesetItem :: Item -> Bool
+> isChangesetItem (Changeset _ _ _) = True
+> isChangesetItem _ = False
