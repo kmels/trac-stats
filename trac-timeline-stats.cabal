@@ -24,3 +24,6 @@ executable trac-timeline-stats
                     ,  old-time                >= 1.1
                     ,  HTTP                    >= 4000
                     ,  transformers            >= 0.3
+                    ,  time                    >= 1.4
+                    ,  old-locale              >= 1
+                    ,  containers              >= 0.4.2

@@ -20,12 +20,12 @@ The following program generates statistics from a trac timeline.
 
 > import           System.Environment
 > import           System.Time
-
+> import System.Locale(defaultTimeLocale)
 > import Network.HTTP(simpleHTTP,getResponseBody,getRequest)
-
 > import Text.HTML.TagSoup
-
-> import Control.Monad.Trans.Maybe
+> import Data.Time.Format(readTime)
+> import qualified Data.Time.Calendar as Cal
+> import qualified Data.Map as M
 > import Control.Monad.IO.Class
 
 > main :: IO()
@@ -38,13 +38,13 @@ Get arguments, we expect a url only, that is, program is to be called `trac-time
 >    [url] -> do
 >      items <- getItems url
 >      let 
->        tickets = filter isTicket items
->        wiki = filter isWikiPage items
->        chsets = filter isChangesetItem items
->        unks = filter isUnknownItem items
->      putStrLn $ "Tickets: "++ (show $ length tickets)
->      putStrLn $ "Wiki: "++ (show $ length wiki)
->      putStrLn $ "Changesets: "++ (show $ length chsets)
+>        tickets = frequenciesByDate $ filter isTicket items
+>        wiki = frequenciesByDate $ filter isWikiPage items
+>        chsets = frequenciesByDate $ filter isChangesetItem items
+>        unks = frequenciesByDate $ filter isUnknownItem items
+>      putStrLn $ "Tickets: "++ (show $ tickets)
+>      putStrLn $ "Wiki: "++ (show $ wiki)
+>      putStrLn $ "Changesets: "++ (show $ chsets)
 >      putStrLn $ "Unknown: "++ (show $ unks)
 >    _ -> putStrLn "?"
 
@@ -53,17 +53,17 @@ Get arguments, we expect a url only, that is, program is to be called `trac-time
 
 > data Item = Ticket {
 >  tUser :: String
->  , tDdate :: Date
+>  , tDate :: Cal.Day
 >  , tTitle :: String
 >  , tStatus :: TicketStatus
 >  } | WikiPage {
 >  wpUser :: String
->  , wpDate :: Date
+>  , wpDate :: Cal.Day
 >  , wpTitle :: String
 >  , wpStatus :: WikiPageStatus
 >  } | Changeset {
 >    chsetUser :: String
->  , chsetDate :: Date
+>  , chsetDate :: Cal.Day
 >  , chsetTitle :: String
 > } | UnknownItem String deriving Show
 
@@ -76,10 +76,13 @@ Fetch a list of items (both wiki articles and tickets) from a URL
 
 > getItems :: URL -> IO [Item]
 > getItems url = do
+>   putStrLn "Fetching feed"
 >   rawResp <- simpleHTTP $ getRequest url
->--   putStrLn "getItems"
+>   putStrLn "Fetched feed"
 >   rss <- getResponseBody rawResp
+>   putStrLn "Parsing"
 >--   putStrLn $ (show $ length $ partitions (~== "<item>") $ parseTags rss)
+>   putStrLn "Calculating"
 >   return $ parseItems rss
 
 Parse RSS (XML) to a list of items with the library tagsoup.
@@ -92,16 +95,15 @@ Parse RSS (XML) to a list of items with the library tagsoup.
 >   --(author,rss3) <- items `extractText` "<author>"
 >   (date,rss3) <- items `extractText` "<pubDate>"
 >   (category,rs) <- items `extractText` "<category>"
->   return $ mkItem title creator date category
+>   return $ mkItem title creator (readTime defaultTimeLocale "%a, %e %b %Y" (take 16 date) :: Cal.Day) category
 
 Create an item from attributes
 
 > type Category = String
 > type Title = String
-> type Date = String
 > type Creator = String
 
-> mkItem :: Title -> Creator -> Date -> Category -> Item
+> mkItem :: Title -> Creator -> Cal.Day -> Category -> Item
 > mkItem t c d cat = case cat of
 >   "newticket" -> Ticket c d t CreatedTicket
 >   "closedticket" -> Ticket c d t ClosedTicket
@@ -137,3 +139,27 @@ Question: Is it possible to generalize on this?
 > isChangesetItem :: Item -> Bool
 > isChangesetItem (Changeset _ _ _) = True
 > isChangesetItem _ = False
+
+We have a list of items which contain a date, let's count how many items happened by date.
+
+> frequenciesByDate :: [Item] -> DateFrequencies
+> frequenciesByDate = flip frequenciesByDate' M.empty
+
+> type DateFrequencies = M.Map Cal.Day Int
+
+> frequenciesByDate' :: [Item] -> DateFrequencies -> DateFrequencies
+> frequenciesByDate' [] _ = M.empty
+> frequenciesByDate' (x:xs) m = let
+>   day = itemDate x
+>   incFreq = (+) 1
+>   updatedDateFreqs = case M.lookup day m of
+>     Just _ ->  M.update (Just . incFreq) day m
+>     _ -> M.insert day 1 m
+>   nextDateFreqs = (frequenciesByDate xs)
+>   in M.unionWith (+) updatedDateFreqs nextDateFreqs
+
+> itemDate :: Item -> Cal.Day
+> itemDate i | (isChangesetItem i) = chsetDate i
+>            | (isWikiPage i)      = wpDate i
+>            | (isTicket i)        = tDate i
+>            | (isUnknownItem i)   = error "TODO: add date to unknown items"
