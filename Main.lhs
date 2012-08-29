@@ -42,10 +42,14 @@ Get arguments, we expect a url only, that is, program is to be called `trac-time
 >        wiki = frequenciesByDate $ filter isWikiPage items
 >        chsets = frequenciesByDate $ filter isChangesetItem items
 >        unks = frequenciesByDate $ filter isUnknownItem items
->      putStrLn $ "Tickets: "++ (show $ tickets)
->      putStrLn $ "Wiki: "++ (show $ wiki)
->      putStrLn $ "Changesets: "++ (show $ chsets)
->      putStrLn $ "Unknown: "++ (show $ unks)
+>      putStrLn $ "#########################"
+>      putStrLn $ "#        REPORT "
+>      putStrLn $ "# Number of Tickets fetched: "++ (show $ M.size tickets)
+>      putStrLn $ "# Number of Wikipages edits fetched: "++ (show $ M.size wiki)
+>      putStrLn $ "# Number of Changesets (commits) fetched: "++ (show $ M.size chsets)
+>      putStrLn $ "# "
+>      putStrLn $ "# Unknown: "++ (show $ unks)
+>      putStrLn $ "#########################"
 >    _ -> putStrLn "?"
 
 > data TicketStatus = ClosedTicket | CreatedTicket  deriving Show
@@ -76,13 +80,14 @@ Fetch a list of items (both wiki articles and tickets) from a URL
 
 > getItems :: URL -> IO [Item]
 > getItems url = do
->   putStrLn "Fetching feed"
+>   putStrLn "## Debug output ## "
+>   putStrLn "# Fetching feed.."
 >   rawResp <- simpleHTTP $ getRequest url
->   putStrLn "Fetched feed"
+>   putStrLn "# Fetched feed.."
 >   rss <- getResponseBody rawResp
->   putStrLn "Parsing"
+>   putStrLn "# Parsing.. "
 >--   putStrLn $ (show $ length $ partitions (~== "<item>") $ parseTags rss)
->   putStrLn "Calculating"
+>   putStrLn "# Calculating.."
 >   return $ parseItems rss
 
 Parse RSS (XML) to a list of items with the library tagsoup.
