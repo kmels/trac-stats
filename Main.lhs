@@ -28,7 +28,7 @@ The following program generates statistics from a trac timeline.
 > import qualified Data.Map as M
 > import Control.Monad.IO.Class
 
-> import Data.List(group,sortBy,intercalate,nub)
+> import Data.List(group,sort,intercalate,nub)
 > import Data.Map(toList,keys)
 > import Data.Function(on)
 > import Data.Maybe(fromMaybe)
@@ -42,49 +42,46 @@ Get arguments, we expect a url only, that is, program is to be called `trac-time
 >  case args of
 >    [url] -> do
 >      items <- getItems url
->      let 
->        tickets = frequenciesByDate $ filter isTicket items
+>      putStrLn "# Calculating.."
+>      let
+>        created_tickets = frequenciesByDate $ filter (\i -> isTicket i && tStatus i == CreatedTicket) items
+>        closed_tickets = frequenciesByDate $ filter (\i -> isTicket i && tStatus i == ClosedTicket) items
 >        wiki = frequenciesByDate $ filter isWikiPage items
 >        chsets = frequenciesByDate $ filter isChangesetItem items
 >        unks = frequenciesByDate $ filter isAnotherItem items
+>        
 >      putStrLn $ "#########################"
 >      putStrLn $ "#        REPORT "
 >      putStrLn $ "#  (to plot with gnuplot)"
->      putStrLn $ "# Number of Tickets fetched: "++ (show $ sum $ M.elems tickets)
+>      putStrLn $ "# Number of created tickets: "++ (show $ sum $ M.elems created_tickets)
+>      putStrLn $ "# Number of closed tickets: "++ (show $ sum $ M.elems closed_tickets)
 >      putStrLn $ "# Number of Wikipages edits fetched: "++ (show $ sum $ M.elems wiki)
 >      putStrLn $ "# Number of Changesets (commits) fetched: "++ (show $ sum $ M.elems chsets)
 >      putStrLn $ "# "
 >      putStrLn $ "# Unknown: "++ (show $ unks)
->      --putStrLn $ "# freq tickets: "++ (show $ tickets)
->      --putStrLn $ "# freq wiki: "++ (show $ wiki)
->      --putStrLn $ "# freq comits: "++ (show $ chsets)
->      --putStrLn $ "# freq unk: "++ (show $ unks)
->      putStrLn $ "# date     ntickets      nwikis     ncommits     nothers"
->      mapM_ gnuplotPrintLn $ groupFreqsByDay [tickets,wiki,chsets,unks]
->    _ -> putStrLn "?"
+>      putStrLn $ "# date     ntickets_created     ntickets_closed          nwikis             ncommits             nothers"
+>      mapM_ gnuplotPrintLn $ groupFreqsByDay [created_tickets,closed_tickets,wiki,chsets,unks]
+>    _ -> putStrLn "Wrong arguments. Usage: trac-stats $url, where $url is an trac timeline feed URL surrounded by quotes"
 
-Let's pretty print date frequencies for gnuplot. Prints how many times an item occured in a day
+Given a day and a list of frequencies corresponding to an item type, this function pretty prints it in a line.
 
 > gnuplotPrintLn :: (Cal.Day,[Int]) -> IO ()
-> gnuplotPrintLn (d,itemTypesFreqs) = putStrLn $ (show d) ++ "    " ++ intercalate "            " (map show itemTypesFreqs)
-
-> gnuplotPrint :: (Cal.Day,Int) -> IO ()
-> gnuplotPrint (d,i) = putStr $ (show d) ++ " " ++ (show i)
+> gnuplotPrintLn (d,itemTypesFreqs) = putStrLn $ (show d) ++ "       " ++ intercalate "                    " (map show itemTypesFreqs)
 
 Returns structured data to print the gnuplot data file. Elements given by a day represent the frequencies of each item type (e.g. tickets, wiki pages, etc.) in the given order of the list of date frequencies (first argument).
 
 > groupFreqsByDay :: [DateFrequencies] -> [(Cal.Day,[Int])]
 > groupFreqsByDay fs =
 >   let 
->     days = nub $ concatMap keys fs
+>     days = sort . nub $ concatMap keys fs
 >     itemTypeFrequency :: Maybe Int -> Int
 >     itemTypeFrequency = fromMaybe 0
 >     freqsPerDay :: Cal.Day -> [DateFrequencies] -> [Int]
 >     freqsPerDay d fs' = map (itemTypeFrequency . M.lookup d) fs'
 >   in map (\d -> (d,freqsPerDay d fs)) days
 
-> data TicketStatus = ClosedTicket | CreatedTicket  deriving Show
-> data WikiPageStatus = EditedWikiPage | CreatedWikiPage deriving Show
+> data TicketStatus = ClosedTicket | CreatedTicket  deriving (Show,Eq)
+> data WikiPageStatus = EditedWikiPage | CreatedWikiPage deriving (Show,Eq)
 
 > data Item = Ticket {
 >  tUser :: String
@@ -105,9 +102,6 @@ Returns structured data to print the gnuplot data file. Elements given by a day 
 >  , otherItemTypeDate :: Cal.Day
 >  } deriving Show
 
-> toDO :: a -> a
-> toDO = id
-
 > type URL = String
 
 Fetch a list of items (both wiki articles and tickets) from a URL
@@ -120,20 +114,20 @@ Fetch a list of items (both wiki articles and tickets) from a URL
 >   putStrLn "# Fetched feed.."
 >   rss <- getResponseBody rawResp
 >   putStrLn "# Parsing.. "
->--   putStrLn $ (show $ length $ partitions (~== "<item>") $ parseTags rss)
->   putStrLn "# Calculating.."
 >   return $ parseItems rss
 
 Parse RSS (XML) to a list of items with the library tagsoup.
 
 > parseItems :: String -> [Item]
 > parseItems rss = do
->   items <- partitions (~== "<item>") $ parseTags rss   
->   (title,rss2) <- items `extractText` "<title>"
->   (creator,rss3) <- items `extractText` "<dc:creator>"
->   --(author,rss3) <- items `extractText` "<author>"
->   (date,rss3) <- items `extractText` "<pubDate>"
->   (category,rs) <- items `extractText` "<category>"
+>   (trac_version,rss') <- parseTags rss `extractText` "<generator>"
+>   items <- partitions (~== "<item>") $ rss'
+>   (title,_) <- items `extractText` "<title>"
+>   (date,_) <- items `extractText` "<pubDate>"
+>   (category,_) <- items `extractText` "<category>"
+>   (creator,_) <- items `extractText` case category of
+>     "changeset" -> "<author>"
+>     _ -> "<dc:creator>"
 >   return $ mkItem title creator (readTime defaultTimeLocale "%a, %e %b %Y" (take 16 date) :: Cal.Day) category
 
 Create an item from attributes
