@@ -28,6 +28,11 @@ The following program generates statistics from a trac timeline.
 > import qualified Data.Map as M
 > import Control.Monad.IO.Class
 
+> import Data.List(group,sortBy,intercalate,nub)
+> import Data.Map(toList,keys)
+> import Data.Function(on)
+> import Data.Maybe(fromMaybe)
+
 > main :: IO()
 > main = do
 
@@ -41,16 +46,42 @@ Get arguments, we expect a url only, that is, program is to be called `trac-time
 >        tickets = frequenciesByDate $ filter isTicket items
 >        wiki = frequenciesByDate $ filter isWikiPage items
 >        chsets = frequenciesByDate $ filter isChangesetItem items
->        unks = frequenciesByDate $ filter isUnknownItem items
+>        unks = frequenciesByDate $ filter isAnotherItem items
 >      putStrLn $ "#########################"
 >      putStrLn $ "#        REPORT "
->      putStrLn $ "# Number of Tickets fetched: "++ (show $ M.size tickets)
->      putStrLn $ "# Number of Wikipages edits fetched: "++ (show $ M.size wiki)
->      putStrLn $ "# Number of Changesets (commits) fetched: "++ (show $ M.size chsets)
+>      putStrLn $ "#  (to plot with gnuplot)"
+>      putStrLn $ "# Number of Tickets fetched: "++ (show $ sum $ M.elems tickets)
+>      putStrLn $ "# Number of Wikipages edits fetched: "++ (show $ sum $ M.elems wiki)
+>      putStrLn $ "# Number of Changesets (commits) fetched: "++ (show $ sum $ M.elems chsets)
 >      putStrLn $ "# "
 >      putStrLn $ "# Unknown: "++ (show $ unks)
->      putStrLn $ "#########################"
+>      --putStrLn $ "# freq tickets: "++ (show $ tickets)
+>      --putStrLn $ "# freq wiki: "++ (show $ wiki)
+>      --putStrLn $ "# freq comits: "++ (show $ chsets)
+>      --putStrLn $ "# freq unk: "++ (show $ unks)
+>      putStrLn $ "# date     ntickets      nwikis     ncommits     nothers"
+>      mapM_ gnuplotPrintLn $ groupFreqsByDay [tickets,wiki,chsets,unks]
 >    _ -> putStrLn "?"
+
+Let's pretty print date frequencies for gnuplot. Prints how many times an item occured in a day
+
+> gnuplotPrintLn :: (Cal.Day,[Int]) -> IO ()
+> gnuplotPrintLn (d,itemTypesFreqs) = putStrLn $ (show d) ++ "    " ++ intercalate "            " (map show itemTypesFreqs)
+
+> gnuplotPrint :: (Cal.Day,Int) -> IO ()
+> gnuplotPrint (d,i) = putStr $ (show d) ++ " " ++ (show i)
+
+Returns structured data to print the gnuplot data file. Elements given by a day represent the frequencies of each item type (e.g. tickets, wiki pages, etc.) in the given order of the list of date frequencies (first argument).
+
+> groupFreqsByDay :: [DateFrequencies] -> [(Cal.Day,[Int])]
+> groupFreqsByDay fs =
+>   let 
+>     days = nub $ concatMap keys fs
+>     itemTypeFrequency :: Maybe Int -> Int
+>     itemTypeFrequency = fromMaybe 0
+>     freqsPerDay :: Cal.Day -> [DateFrequencies] -> [Int]
+>     freqsPerDay d fs' = map (itemTypeFrequency . M.lookup d) fs'
+>   in map (\d -> (d,freqsPerDay d fs)) days
 
 > data TicketStatus = ClosedTicket | CreatedTicket  deriving Show
 > data WikiPageStatus = EditedWikiPage | CreatedWikiPage deriving Show
@@ -69,7 +100,10 @@ Get arguments, we expect a url only, that is, program is to be called `trac-time
 >    chsetUser :: String
 >  , chsetDate :: Cal.Day
 >  , chsetTitle :: String
-> } | UnknownItem String deriving Show
+> } | OtherItem {
+>    itemType :: String
+>  , otherItemTypeDate :: Cal.Day
+>  } deriving Show
 
 > toDO :: a -> a
 > toDO = id
@@ -114,7 +148,7 @@ Create an item from attributes
 >   "closedticket" -> Ticket c d t ClosedTicket
 >   "wiki" -> WikiPage c d t EditedWikiPage
 >   "changeset" -> Changeset c d t
->   a -> UnknownItem a
+>   a -> OtherItem a d
 > 
 
 Given a parsed structure, we would like to substract information from the tags. This function looks for the first ocurrence of a tag and returns the text inside it together with the remaining structure.
@@ -137,9 +171,9 @@ Question: Is it possible to generalize on this?
 > isWikiPage (WikiPage _ _ _ _) = True
 > isWikiPage _ = False
 
-> isUnknownItem :: Item -> Bool
-> isUnknownItem (UnknownItem s) = True
-> isUnknownItem _ = False
+> isAnotherItem :: Item -> Bool
+> isAnotherItem (OtherItem _ _) = True
+> isAnotherItem _ = False
 
 > isChangesetItem :: Item -> Bool
 > isChangesetItem (Changeset _ _ _) = True
@@ -167,4 +201,5 @@ We have a list of items which contain a date, let's count how many items happene
 > itemDate i | (isChangesetItem i) = chsetDate i
 >            | (isWikiPage i)      = wpDate i
 >            | (isTicket i)        = tDate i
->            | (isUnknownItem i)   = error "TODO: add date to unknown items"
+>            | (isAnotherItem i)   = otherItemTypeDate i
+
