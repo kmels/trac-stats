@@ -12,8 +12,10 @@ Future plans: produce a report.
 # Usage
 
 As a binary    
-     trac-timeline-stats "http://hackage.haskell.org/trac/ghc/timeline?changeset=on&ticket=on&milestone=on&wiki=on&blog=on&max=50&author=&daysback=90&format=rss"
+
+    trac-timeline-stats "http://hackage.haskell.org/trac/ghc/timeline?changeset=on&ticket=on&milestone=on&wiki=on&blog=on&max=50&author=&daysback=90&format=rss"
 
 With `runhaskell`
-     runhaskell Main.lhs "http://hackage.haskell.org/trac/ghc/timeline?changeset=on&ticket=on&milestone=on&wiki=on&blog=on&max=50&author=&daysback=90&format=rss"
+
+    runhaskell Main.lhs "http://hackage.haskell.org/trac/ghc/timeline?changeset=on&ticket=on&milestone=on&wiki=on&blog=on&max=50&author=&daysback=90&format=rss"
 
