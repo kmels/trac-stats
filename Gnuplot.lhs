@@ -11,12 +11,12 @@
 -- Portability :  portable
 --
 --
--- Contains actions triggered by the main program.
+-- Generates output to be plotted with gnuplot
 -----------------------------------------------------------------------------
 
 This function is called when the program is called with generate. It returns a string that is plottable with gnuplot
 
-> module Actions where
+> module Gnuplot where
 
 > import Control.Monad(when)
 > import qualified Data.Time.Calendar as Cal
@@ -28,7 +28,7 @@ This function is called when the program is called with generate. It returns a s
 > import Types
 > import Fetcher(getItems)
 > import Item
-
+> import Manipulate
 
 > gnuplot :: URL -> IO String
 > gnuplot url = do
@@ -56,35 +56,4 @@ This function is called when the program is called with generate. It returns a s
 
 > gnuplotShow :: (Cal.Day,[Int]) -> String
 > gnuplotShow (d,itemTypesFreqs) = (show d) ++ "       " ++ intercalate "                    " (map show itemTypesFreqs) ++ "\n"
-
-Returns structured data to print the gnuplot data file. Elements given by a day represent the frequencies of each item type (e.g. tickets, wiki pages, etc.) in the given order of the list of date frequencies (first argument).
-
-> groupFreqsByDay :: [DateFrequencies] -> [(Cal.Day,[Int])]
-> groupFreqsByDay fs =
->   let 
->     days = sort . nub $ concatMap keys fs
->     itemTypeFrequency :: Maybe Int -> Int
->     itemTypeFrequency = fromMaybe 0
->     freqsPerDay :: Cal.Day -> [DateFrequencies] -> [Int]
->     freqsPerDay d fs' = map (itemTypeFrequency . M.lookup d) fs'
->   in map (\d -> (d,freqsPerDay d fs)) days
-
-We have a list of items which contain a date, let's count how many items happened by date.
-
-> type DateFrequencies = M.Map Cal.Day Int
-
-> frequenciesByDate :: [Item] -> DateFrequencies
-> frequenciesByDate = flip frequenciesByDate' M.empty
-
-> frequenciesByDate' :: [Item] -> DateFrequencies -> DateFrequencies
-> frequenciesByDate' [] _ = M.empty
-> frequenciesByDate' (x:xs) m = let
->   day = itemDate x
->   incFreq = (+) 1
->   updatedDateFreqs = case M.lookup day m of
->     Just _ ->  M.update (Just . incFreq) day m
->     _ -> M.insert day 1 m
->   nextDateFreqs = (frequenciesByDate xs)
->   in M.unionWith (+) updatedDateFreqs nextDateFreqs
-
 

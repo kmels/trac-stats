@@ -1,0 +1,11 @@
+<html>
+     <head>
+         <title>Hamlet Demo
+     <body>
+         <h1>Testing output
+         <h2>
+             $forall (date,tickets) <- created_tickets
+                 <tr>
+                    <td>#{show date}
+                    <td>#{show tickets}             
+

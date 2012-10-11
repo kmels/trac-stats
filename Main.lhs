@@ -22,7 +22,8 @@
 
 > import Data.Function(on)
 
-> import Actions
+> import HtmlReport
+> import Gnuplot
 
 > main :: IO()
 > main = do
@@ -32,10 +33,12 @@ Get arguments, we expect a url only, that is, program is to be called `trac-time
 >  args <- getArgs
 >  case args of
 >    ["gnuplot",url] -> do
->      gnuRawData <- generate url
+>      gnuRawData <- gnuplot url
 >      putStrLn gnuRawData
->    ["html-report",filename url]
->    _ -> putStrLn "Wrong arguments. Usage: trac-stats $action $url, where $url is an trac timeline feed URL surrounded by quotes and $action is either `gnuplot` or `html-report $filename.html`"
+>    ["html-report",url] -> do
+>      html <- htmlReport url
+>      putStrLn html      
+>    _ -> putStrLn "Wrong arguments. Usage: trac-stats $action $url, where $url is an trac timeline feed URL surrounded by quotes and $action is either `gnuplot` or `html-report`"
 
 Given a day and a list of frequencies corresponding to an item type, this function pretty prints it in a line.
 
