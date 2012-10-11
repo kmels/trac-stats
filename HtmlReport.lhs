@@ -33,12 +33,13 @@ Let's render html from a template
 
 > htmlReport :: URL -> IO String
 > htmlReport url = do
->   items <- getItems url
+>   let commentF cmmt = "<!-- " ++ cmmt ++ "-->"
+>   items <- getItems commentF url
 >   let messages = if (null items) 
 >                  then ""
 >                  else "\nWARNING: I found no items, maybe you are not giving the *RSS* feed url?\n"
 >   let
->     created_tickets = M.toList $ frequenciesByDate $ filter (\i -> isTicket i && tStatus i == CreatedTicket) items
+>     (created_tickets_days,created_tickets_freqs) = unzip $ M.toList $ frequenciesByDate $ filter (\i -> isTicket i && tStatus i == CreatedTicket) items
 >     closed_tickets = frequenciesByDate $ filter (\i -> isTicket i && tStatus i == ClosedTicket) items
 >     wiki = frequenciesByDate $ filter isWikiPage items
 >     chsets = frequenciesByDate $ filter isChangesetItem items

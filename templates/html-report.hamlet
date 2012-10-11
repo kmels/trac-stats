@@ -1,11 +1,31 @@
-<html>
-     <head>
-         <title>Hamlet Demo
-     <body>
-         <h1>Testing output
-         <h2>
-             $forall (date,tickets) <- created_tickets
-                 <tr>
-                    <td>#{show date}
-                    <td>#{show tickets}             
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Raphaël · Analytics</title>
+        <link rel="stylesheet" href="html/demo.css" type="text/css" media="screen">
+        <link rel="stylesheet" href="html/demo-print.css" type="text/css" media="print">
+        <script src="html/raphael.js"></script>
+        <script src="html/popup.js"></script>
+        <script src="html/jquery.js"></script>
+        <script src="html/analytics.js"></script>
+        <style type="text/css" media="screen">
+            #holder {
+                height: 250px;
+                margin: -125px 0 0 -400px;
+                width: 800px;
+            }
+    <body>
+        <table id="data">
+            <tfoot>
+                <tr>
+                    $forall ctd <- created_tickets_days
+                        <th>#{show ctd}</th>
+            <tbody>
+                <tr>
+                    $forall fs <- created_tickets_freqs        
+                        <td>#{show fs}</td>
+        <div id="holder"></div>
+        <p id="copy">Demo of <a href="http://raphaeljs.com/">Raphaël</a>—JavaScript Vector Library</p>
 

@@ -27,14 +27,16 @@
 
 Fetch a list of items (both wiki articles and tickets) from a URL
 
-> getItems :: URL -> IO [Item]
-> getItems url = do
->   putStrLn "## Debug output ## "
->   putStrLn "# Fetching feed.."
+> type FormatComment = String -> String
+
+> getItems :: FormatComment -> URL -> IO [Item]
+> getItems fc url = do
+>   putStrLn $ fc "(trac-stats debug output)"
+>   putStrLn $ fc "Fetching feed.."
 >   rawResp <- simpleHTTP $ getRequest url
->   putStrLn "# Fetched feed.."
+>   putStrLn $ fc "Fetched feed.."
 >   rss <- getResponseBody rawResp
->   putStrLn "# Parsing.. "
+>   putStrLn $ fc "Parsing.. "
 >   return $ parseItems rss
 
 Parse RSS (XML) to a list of items with the library tagsoup.

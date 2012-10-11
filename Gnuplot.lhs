@@ -32,7 +32,8 @@ This function is called when the program is called with generate. It returns a s
 
 > gnuplot :: URL -> IO String
 > gnuplot url = do
->   items <- getItems url
+>   let commentF cmmt = "# " ++ cmmt ++ " #"
+>   items <- getItems commentF url
 >   when (null items) $ 
 >       putStrLn "\nWARNING: I found no items, maybe you are not giving the *RSS* feed url?\n"
 >   let
