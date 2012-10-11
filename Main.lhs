@@ -28,6 +28,7 @@ The following program generates statistics from a trac timeline.
 > import qualified Data.Map as M
 > import Control.Monad.IO.Class
 
+> import Control.Monad(when)
 > import Data.List(group,sort,intercalate,nub)
 > import Data.Map(toList,keys)
 > import Data.Function(on)
@@ -43,6 +44,8 @@ Get arguments, we expect a url only, that is, program is to be called `trac-time
 >    [url] -> do
 >      items <- getItems url
 >      putStrLn "# Calculating.."
+>      when (null items) $ 
+>        putStrLn "\nWARNING: I found no items, maybe you are not giving the *RSS* feed url?\n"
 >      let
 >        created_tickets = frequenciesByDate $ filter (\i -> isTicket i && tStatus i == CreatedTicket) items
 >        closed_tickets = frequenciesByDate $ filter (\i -> isTicket i && tStatus i == ClosedTicket) items
