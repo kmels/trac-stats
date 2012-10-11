@@ -21,6 +21,8 @@
 > import Data.List(group,sort,intercalate,nub)
 > import Data.Maybe(fromMaybe)
 > import Data.Map(toList,keys)
+> import System.Directory(getCurrentDirectory)
+> import System.IO.Unsafe(unsafePerformIO)
 
 > import Text.Blaze.Html.Renderer.String (renderHtml)
 > import Text.Hamlet
@@ -44,5 +46,7 @@ Let's render html from a template
 >     wiki = frequenciesByDate $ filter isWikiPage items
 >     chsets = frequenciesByDate $ filter isChangesetItem items
 >     unks = frequenciesByDate $ filter isAnotherItem items 
->     template = $(shamletFile "/home/kmels/code/trac-stats/templates/html-report.hamlet")
+>     template = $(shamletFile $ (unsafePerformIO getCurrentDirectory) ++ "/templates/html-report.hamlet")
+>     
+>     
 >   return $ renderHtml template

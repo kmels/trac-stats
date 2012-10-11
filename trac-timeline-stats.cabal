@@ -32,3 +32,4 @@ executable trac-timeline-stats
                     ,  containers              >= 0.4.2
                     ,  hamlet                  >= 1.1
                     ,  blaze-html              >= 0.5
+                    ,  directory               >= 1.1
