@@ -19,8 +19,9 @@
 > import qualified Data.Time.Calendar as Cal
 > import Data.List(group,sort,intercalate,nub)
 > import Data.Maybe(fromMaybe)
-> import Data.Map(toList,keys)
+> import Data.Map(fromList,toList,keys)
 > import qualified Data.Map as M
+> import Data.Monoid(mappend)
 
 > import Types
 > import Fetcher(getItems)
@@ -41,6 +42,14 @@ Returns structured data to print the gnuplot data file. Elements given by a day 
 We have a list of items which contain a date, let's count how many items happened by date.
 
 > type DateFrequencies = M.Map Cal.Day Int
+
+Assuming we have a list of day frequencies ordered by date, we accummulate the frequencies. That is, a day frequency is equal to the sum of the frequencies before that day plus the frequency in that day.
+
+> accummulate :: DateFrequencies -> DateFrequencies
+> accummulate m = fromList $ acc (toList m) 0 where
+>   acc :: [(Cal.Day,Int)] -> Int -> [(Cal.Day,Int)]
+>   acc [] _ = []
+>   acc ((day,freq):dayFreqs) accummulated = (day,freq+accummulated) : acc dayFreqs (freq + accummulated)
 
 > frequenciesByDate :: [Item] -> DateFrequencies
 > frequenciesByDate = flip frequenciesByDate' M.empty

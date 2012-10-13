@@ -1,31 +1,102 @@
-
 <!DOCTYPE html>
 <html lang="en">
     <head>
         <meta charset="utf-8">
         <title>Raphaël · Analytics</title>
         <link rel="stylesheet" href="html/demo.css" type="text/css" media="screen">
-        <link rel="stylesheet" href="html/demo-print.css" type="text/css" media="print">
-        <script src="html/raphael.js"></script>
-        <script src="html/popup.js"></script>
-        <script src="html/jquery.js"></script>
-        <script src="html/analytics.js"></script>
-        <style type="text/css" media="screen">
-            #holder {
-                height: 250px;
-                margin: -125px 0 0 -400px;
-                width: 800px;
-            }
+        <script type="text/javascript" src="html/raphael.js"></script>
+        <script type="text/javascript" src="html/raphael_linechart.js"></script>
     <body>
-        <table id="data">
-            <tfoot>
-                <tr>
-                    $forall ctd <- created_tickets_days
-                        <th>#{show ctd}</th>
-            <tbody>
-                <tr>
-                    $forall fs <- created_tickets_freqs        
-                        <td>#{show fs}</td>
-        <div id="holder"></div>
-        <p id="copy">Demo of <a href="http://raphaeljs.com/">Raphaël</a>—JavaScript Vector Library</p>
+    <div id=main>
+        <h1>About</h1>
+            <p>This program is open source, you can <a href="https://github.com/kmels/trac-stats">download and use it for free</a>.
 
+            <p>The following open source programs make it possible: <a href="http://raphaeljs.com/">Raphaël</a> (Vector graphics), <a href="https://github.com/n0nick/raphael-linechart">raphael-linechart</a> (Plotting), <a href="http://gkz.github.com/prelude-ls/">prelude.ls</a> (Functional programming in Javascript) and <a href="http://www.haskell.org/">Haskell</a> (A general purpose functional programming language).
+
+        <h1>Summary
+
+        <p> Number of created tickets: #{show $ sum $ created_tickets_freqs}
+        <p> Number of closed tickets: #{show $ sum $ closed_tickets_freqs}
+        <p> Number of Wikipages edits fetched: #{show $ sum $ M.elems wiki}
+        <p> Number of Changesets fetched: #{show $ sum $ M.elems chsets}
+               
+        <h1>Tickets</h1>
+
+        <h3>Created tickets </h3>                    
+            <p>Accummulated numbers. The frequency shown in a day is the number of tickets created that day plus the sum of the frequencies in previous days. The first day assumes no tickets in previous days.
+            <div id=created-tickets>
+
+        <h3>Closed tickets </h3>                    
+            Accummulated numbers. The frequency shown in a day is the number of tickets closed that day plus the sum of the frequencies in previous days. The first day assumes no tickets in previous days.
+            <div id=closed-tickets>
+
+        <h3>Created vs closed </h3>                    
+            The two previous graphics merged in one.
+            <div id=created-vs-closed-tickets>
+
+    <!-- DATA TICKETS --> 
+    <table id="created_tickets" style="display: none;">
+            <tfoot>
+              <tr>
+                $forall day <- created_tickets_days
+                    <th>#{show day}</th>
+            <tbody class="data">
+              <tr>
+                $forall freq <- created_tickets_freqs
+                    <td>#{show freq}</td>
+            <tbody class="line1">
+              <tr>
+                $forall freq <- created_tickets_freqs
+                    <td>#{show freq} Created tickets</td>
+            <tbody class="line2">
+              <tr>
+                $forall day <- created_tickets_days
+                    <td>#{show day}</td>
+     <table id="closed_tickets" style="display: none;">
+            <tfoot>
+              <tr>
+                $forall day <- closed_tickets_days
+                    <th>#{show day}</th>
+            <tbody class="data">
+              <tr>
+                $forall freq <- closed_tickets_freqs
+                    <td>#{show freq}</td>
+              <tbody class="line1">
+                <tr>
+                  $forall freq <- closed_tickets_freqs
+                     <td>#{show freq} Closed tickets</td>
+            <tbody class="line2">
+              <tr>
+                $forall day <- created_tickets_days
+                    <td>#{show day}</td>
+
+    <script type=text/javascript>
+      window.onload = function(){
+          var w = 840;
+          var created_tickets = Raphael('created-tickets', w, 250);
+          created_tickets.lineChart({
+              data_holder: 'created_tickets',
+              width: w,
+              show_area: true,
+              mouse_coords: 'rect',
+              x_labels_step: 3,
+              y_labels_count: 5,
+              colors: {
+                 master: '#d90000'
+                 }
+          });
+          var closed_tickets = Raphael('closed-tickets', w, 250);
+          closed_tickets.lineChart({
+              data_holder: 'closed_tickets',
+              width: w,
+              show_area: true,
+              mouse_coords: 'rect',
+              x_labels_step: 3,
+              y_labels_count: 5,
+              colors: {
+                 master: '#8fd100'
+              }
+          });
+          
+      }
+      
