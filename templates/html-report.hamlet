@@ -2,10 +2,13 @@
 <html lang="en">
     <head>
         <meta charset="utf-8">
-        <title>Raphaël · Analytics</title>
+        <title>Trac statistics</title>
         <link rel="stylesheet" href="html/demo.css" type="text/css" media="screen">
+        <!-- CommonJS -->
+        <script type="text/javascript">var exports = new Object();</script>
         <script type="text/javascript" src="html/raphael.js"></script>
         <script type="text/javascript" src="html/raphael_linechart.js"></script>
+        <script type="text/javascript" src="html/prelude.js"></script>
     <body>
     <div id=main>
         <h1>About</h1>
@@ -71,32 +74,43 @@
                     <td>#{show day}</td>
 
     <script type=text/javascript>
-      window.onload = function(){
-          var w = 840;
-          var created_tickets = Raphael('created-tickets', w, 250);
-          created_tickets.lineChart({
-              data_holder: 'created_tickets',
-              width: w,
-              show_area: true,
-              mouse_coords: 'rect',
-              x_labels_step: 3,
-              y_labels_count: 5,
-              colors: {
-                 master: '#d90000'
-                 }
-          });
-          var closed_tickets = Raphael('closed-tickets', w, 250);
-          closed_tickets.lineChart({
-              data_holder: 'closed_tickets',
-              width: w,
-              show_area: true,
-              mouse_coords: 'rect',
-              x_labels_step: 3,
-              y_labels_count: 5,
-              colors: {
-                 master: '#8fd100'
-              }
-          });
-          
+      var render_graphic = function(canvas_name,lines){
+           var canvas = Raphael(canvas_name, 840, 250);           
+            
+           //plot the first line with labels
+           canvas.lineChart({
+                    data_holder: head(lines).table_name,                    
+                    width: 840,
+                    show_area: false,
+                    mouse_coords: 'rect',
+                    x_labels_step: 3,
+                    y_labels_count: 5,
+                    colors: {
+                            master: head(lines).color,
+                            line1: "#000000",
+                            line2: head(lines).color
+                    }
+            });
+
+            if (length(lines) > 1){
+                var plot_on = function(line){
+                    canvas.lineChart({
+                        data_holder: line.table_name,
+                        width: 840,
+                        mouse_coords: 'rect',
+                        colors: {
+                            master: line.color,
+                            line1: "#000000",
+                            line2: line.color,
+                        }
+                     });
+                }
+
+                //add the missing lines
+                exports.each(plot_on,tail(lines))
+           }
       }
-      
+
+      render_graphic('created-tickets',[{color: "#01A8F0", table_name: 'created_tickets'}])
+      render_graphic('closed-tickets',[{color: "#32CD32", table_name: 'closed_tickets'}])  
+      render_graphic('created-vs-closed-tickets',[{color: "#01A8F0", table_name: 'created_tickets'},{color: "#32CD32", table_name: 'closed_tickets'}])
